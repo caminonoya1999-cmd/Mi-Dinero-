@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#153d32">
+<title>Mi Dinero</title>
+<style>
+:root{--green:#153d32;--mint:#a8e6bf;--bg:#f4f7f5;--card:#fff;--text:#18231f;--muted:#63716a;--line:#dce5df;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:var(--green);color:#fff;padding:22px 18px 25px;border-radius:0 0 22px 22px}
+header h1{margin:0;font-size:25px}header p{margin:4px 0 18px;color:#d1e6db;font-size:14px}
+.total{font-size:32px;font-weight:750;margin:4px 0}.small{font-size:13px;color:#d1e6db}
+main{max-width:720px;margin:auto;padding:16px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
+.kicker{font-size:12px;color:var(--muted)}.amount{font-size:21px;font-weight:750;margin-top:4px}
+h2{font-size:18px;margin:0 0 12px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}
+input,select,textarea,button{font:inherit}input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text)}
+button{border:0;border-radius:11px;padding:12px 14px;cursor:pointer;font-weight:650}
+.primary{background:var(--green);color:#fff}.secondary{background:#e8f1eb;color:var(--green)}.danger{background:#fff0ef;color:var(--red)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.entry{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:0}.entry strong{display:block}.entry small{color:var(--muted)}
+.entry .price{font-weight:750;white-space:nowrap}
+.muted{color:var(--muted);font-size:13px}.bar{height:8px;background:#e4ece7;border-radius:99px;overflow:hidden;margin-top:8px}.bar span{display:block;height:100%;background:#31966d}
+.hidden{display:none!important}.pill{font-size:12px;background:#e8f1eb;color:var(--green);padding:4px 8px;border-radius:99px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 20px 30px}
+@media(max-width:420px){.formgrid{grid-template-columns:1fr}.cards{gap:8px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mi Dinero</h1><p>Control sencillo de tus gastos personales</p>
+  <div class="small">Gastos de este mes</div>
+  <div class="total" id="monthTotal">0,00 €</div>
+  <div class="bar"><span id="budgetBar" style="width:0%"></span></div>
+  <div class="small" id="budgetCaption">Define tu presupuesto mensual</div>
+</header>
+<main>
+  <section class="cards">
+    <div class="card"><div class="kicker">Presupuesto mensual</div><div class="amount" id="budgetShow">Sin definir</div></div>
+    <div class="card"><div class="kicker">Disponible este mes</div><div class="amount" id="remainingShow">—</div></div>
+  </section>
+  <section class="card">
+    <h2>Añadir gasto</h2>
+    <form id="expenseForm">
+      <div class="formgrid">
+        <div><label for="amount">Importe (€)</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="Ej. 15,50" required></div>
+        <div><label for="date">Fecha</label><input id="date" type="date" required></div>
+      </div>
+      <label for="category">Categoría</label>
+      <select id="category"><option>Comida</option><option>Transporte</option><option>Vivienda</option><option>Gasolina</option><option>Ocio</option><option>Salud</option><option>Compras</option><option>Facturas</option><option>Otros</option></select>
+      <label for="description">Descripción</label><input id="description" maxlength="100" placeholder="Ej. compra supermercado">
+      <div class="actions"><button class="primary" type="submit">Guardar gasto</button><button class="secondary" type="button" id="voiceBtn">🎙️ Añadir por voz</button></div>
+      <p class="muted" id="voiceHelp">La voz depende de la compatibilidad del navegador y puede requerir permiso de micrófono.</p>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Presupuesto</h2>
+    <label for="budget">Límite mensual (€)</label><input id="budget" type="number" min="0" step="0.01" placeholder="Ej. 1000">
+    <div class="actions"><button class="secondary" id="saveBudget" type="button">Guardar presupuesto</button></div>
+  </section>
+  <section class="card">
+    <h2>Historial de gastos</h2>
+    <label for="filterMonth">Filtrar por mes</label><input id="filterMonth" type="month">
+    <div id="history"><p class="muted">Todavía no has añadido gastos.</p></div>
+  </section>
+  <section class="card">
+    <h2>Copias de seguridad</h2>
+    <p class="muted">Exporta una copia JSON para conservar tus gastos o recuperarlos en otro dispositivo. Los datos se guardan en este navegador.</p>
+    <div class="actions"><button class="secondary" id="exportBtn" type="button">Exportar copia</button><button class="secondary" id="importBtn" type="button">Importar copia</button><button class="secondary" id="csvBtn" type="button">Exportar CSV</button></div>
+    <input class="hidden" id="importFile" type="file" accept=".json,application/json">
+  </section>
+</main>
+<footer>Mi Dinero · Guarda copias de seguridad periódicas. Borrar los datos del navegador puede eliminar tus registros.</footer>
+<script>
+(function(){
+const KEY='miDinero_expenses_v1', BKEY='miDinero_budget_v1';
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const monthNow=()=>today().slice(0,7);
+const euro=n=>Number(n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+let expenses=[],budget=0;
+try{expenses=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(expenses))expenses=[]}catch(e){expenses=[]}
+try{budget=Number(localStorage.getItem(BKEY)||0)}catch(e){budget=0}
+$('date').value=today();$('filterMonth').value=monthNow();$('budget').value=budget||'';
+function persist(){localStorage.setItem(KEY,JSON.stringify(expenses));localStorage.setItem(BKEY,String(budget))}
+function render(){
+ const m=monthNow(), monthItems=expenses.filter(x=>(x.date||'').slice(0,7)===m);
+ const total=monthItems.reduce((s,x)=>s+Number(x.amount||0),0);
+ $('monthTotal').textContent=euro(total);$('budgetShow').textContent=budget?euro(budget):'Sin definir';
+ $('remainingShow').textContent=budget?euro(budget-total):'—';
+ $('budgetCaption').textContent=budget?`${Math.min(100,Math.round(total/budget*100))}% del presupuesto utilizado`:'Define tu presupuesto mensual';
+ $('budgetBar').style.width=budget?Math.min(100,total/budget*100)+'%':'0%';
+ const filter=$('filterMonth').value||monthNow();
+ const list=expenses.filter(x=>(x.date||'').slice(0,7)===filter).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+ const h=$('history');h.innerHTML='';
+ if(!list.length){h.innerHTML='<p class="muted">No hay gastos en este mes.</p>';return}
+ list.forEach(x=>{
+  const row=document.createElement('div');row.className='entry';
+  const left=document.createElement('div');const title=document.createElement('strong');title.textContent=x.description||x.category;
+  const sub=document.createElement('small');sub.textContent=`${x.date} · ${x.category}`;
+  left.append(title,sub);
+  const right=document.createElement('div');right.style.textAlign='right';
+  const price=document.createElement('div');price.className='price';price.textContent=euro(x.amount);
+  const del=document.createElement('button');del.className='danger';del.type='button';del.textContent='Eliminar';del.style.padding='5px 8px';del.style.fontSize='12px';
+  del.onclick=()=>{if(confirm('¿Eliminar este gasto?')){expenses=expenses.filter(y=>y.id!==x.id);persist();render()}};
+  right.append(price,del);row.append(left,right);h.append(row);
+ });
+}
+$('expenseForm').addEventListener('submit',e=>{
+ e.preventDefault();const amount=Number($('amount').value);
+ if(!Number.isFinite(amount)||amount<=0){alert('Introduce un importe válido.');return}
+ expenses.push({id:Date.now(),amount, date:$('date').value||today(),category:$('category').value,description:$('description').value.trim()});
+ persist();$('amount').value='';$('description').value='';$('date').value=today();render();
+});
+$('saveBudget').onclick=()=>{budget=Math.max(0,Number($('budget').value)||0);persist();render();alert('Presupuesto guardado.')};
+$('filterMonth').onchange=render;
+$('exportBtn').onclick=()=>{
+ const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),budget,expenses},null,2)],{type:'application/json'});
+ download(blob,'mi-dinero-copia-'+today()+'.json');
+};
+$('csvBtn').onclick=()=>{
+ const rows=[['fecha','importe_eur','categoria','descripcion'],...expenses.map(x=>[x.date,x.amount,x.category,x.description||''])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ download(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),'mi-dinero-gastos.csv');
+};
+function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ try{const obj=JSON.parse(await f.text());const incoming=Array.isArray(obj)?obj:obj.expenses;if(!Array.isArray(incoming))throw new Error('Formato no válido');
+  if(!confirm('La importación sustituirá los gastos actuales. ¿Continuar?'))return;
+  expenses=incoming.filter(x=>x&&Number(x.amount)>0&&x.date).map(x=>({...x,id:Number(x.id)||Date.now()+Math.random()}));
+  if(obj.budget!==undefined)budget=Number(obj.budget)||0;
+  persist();$('budget').value=budget||'';render();alert('Copia importada.');
+ }catch(err){alert('No se pudo importar. Selecciona una copia JSON válida.')}finally{$('importFile').value=''}
+};
+$('voiceBtn').onclick=()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){alert('Este navegador no admite reconocimiento de voz aquí. Prueba Chrome y escribe el gasto manualmente si no funciona.');return}
+ const rec=new SR();rec.lang='es-ES';rec.interimResults=false;rec.maxAlternatives=1;
+ $('voiceHelp').textContent='Escuchando… di algo como: “15 euros en gasolina”.';
+ rec.onresult=e=>{
+  const text=e.results[0][0].transcript;const match=text.match(/(\d+(?:[.,]\d{1,2})?)/);
+  if(match)$('amount').value=match[1].replace(',','.');
+  $('description').value=text;
+  const lower=text.toLowerCase();
+  const cats=[['gasolina','Gasolina'],['combustible','Gasolina'],['supermercado','Comida'],['comida','Comida'],['cena','Comida'],['almuerzo','Comida'],['alquiler','Vivienda'],['luz','Facturas'],['agua','Facturas'],['internet','Facturas'],['ocio','Ocio'],['cine','Ocio'],['médico','Salud'],['farmacia','Salud'],['autobús','Transporte'],['tren','Transporte'],['taxi','Transporte'],['ropa','Compras']];
+  const found=cats.find(c=>lower.includes(c[0]));if(found)$('category').value=found[1];
+  $('voiceHelp').textContent='Texto reconocido: '+text+'. Revisa el importe y la categoría y pulsa Guardar gasto.';
+ };
+ rec.onerror=()=>{$('voiceHelp').textContent='No se pudo reconocer la voz. Revisa el permiso del micrófono o introduce el gasto manualmente.'};
+ rec.onend=()=>{};try{rec.start()}catch(err){alert('No se pudo iniciar el micrófono. Prueba en un navegador compatible con HTTPS.')}
+};
+render();
+})();
+</script>
+</body>
+</html>
